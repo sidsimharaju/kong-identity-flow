@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The AI Gateway Club — a Kong Identity flow</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎫</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title">
+    <span class="pixel-emoji">🎫</span>
+    <div>
+      <h1>The AI Gateway Club</h1>
+      <p>a Gather-Town-style walkthrough of how Kong Identity gets someone through the door</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button id="btn-notes" class="btn btn-ghost">📌 Pinned notes</button>
+    <button id="btn-reset" class="btn btn-ghost">↺ Reset</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ============ LEFT: control panel ============ -->
+  <aside class="panel controls">
+
+    <section class="panel-block">
+      <h2>Quick scenarios</h2>
+      <p class="hint">Click one to auto-fill and watch the whole walk-through.</p>
+      <div id="scenario-list" class="scenario-list"></div>
+    </section>
+
+    <details class="panel-block advanced" id="advanced-block">
+      <summary><h2 style="display:inline">Build your own visit</h2></summary>
+
+      <div class="field">
+        <label>1. Who's walking in?</label>
+        <div id="persona-list" class="option-grid"></div>
+      </div>
+
+      <div class="field" id="agent-extra" hidden>
+        <label>Which assistant, and on whose behalf?</label>
+        <select id="agent-id"></select>
+        <div class="segmented" id="agent-mode">
+          <button data-mode="self" type="button">Representing itself</button>
+          <button data-mode="onbehalf" type="button">Sent by a member</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>2. How do they prove it at the door?</label>
+        <select id="auth-method"></select>
+        <p class="blurb" id="auth-blurb"></p>
+      </div>
+
+      <div class="field" id="idp-field" hidden>
+        <label>Which HR office (IdP) do they call?</label>
+        <select id="idp"></select>
+      </div>
+
+      <div class="field">
+        <label>3. What does their employer's ID say about them?</label>
+        <div class="segmented" id="claim-picker">
+          <button data-claim="engineering" type="button">Engineering</button>
+          <button data-claim="payments" type="button">Payments</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>4. Where do they want to go?</label>
+        <div id="destination-list" class="option-grid"></div>
+      </div>
+
+      <div class="field" id="handoff-field" hidden>
+        <label>How does that room verify who's really inside?</label>
+        <select id="handoff"></select>
+        <p class="blurb" id="handoff-blurb"></p>
+      </div>
+
+      <button id="btn-go" class="btn btn-primary btn-block">▶ Walk them in</button>
+    </details>
+
+    <section class="panel-block">
+      <h2>Narration log</h2>
+      <ol id="log" class="log"></ol>
+    </section>
+
+  </aside>
+
+  <!-- ============ CENTER: the floorplan ============ -->
+  <main class="stage-wrap">
+    <div class="stage" id="stage">
+
+      <div class="zone outdoors">
+        <div class="tree">🌳</div>
+        <div class="tree tree2">🌲</div>
+        <div class="tree tree3">🌳</div>
+      </div>
+
+      <div class="zone entrance">
+        <div class="zone-label">Entrance</div>
+        <div class="sign" id="sign" title="RFC 9728 discovery sign">🪧<span>discovery sign</span></div>
+        <div class="npc bouncer" title="The bouncer">💂</div>
+        <div class="desk kong-desk" id="kong-desk">
+          <div class="desk-label">Kong Identity<br><small>security &amp; membership office</small></div>
+        </div>
+        <div class="wristband-station" id="wristband-station">
+          <div class="wristband-label">Wristband station</div>
+          <div class="wristband-chip" id="wristband-chip">—</div>
+        </div>
+        <button class="bulletin" id="policy-board" title="House rules">📋<span>house rules</span></button>
+      </div>
+
+      <div class="zone bar" data-room="bar">
+        <div class="zone-label">🍸 The Bar <small>(Models)</small></div>
+        <div class="npc bartender" title="Bartender">🧑‍🍳</div>
+        <div class="furniture">🍾 🍷 🍹</div>
+        <div class="room-actions" id="bar-actions">
+          <div class="budget-meter"><div class="budget-fill" id="bar-budget-fill"></div></div>
+          <div class="budget-text" id="bar-budget-text">no wristband yet</div>
+          <button id="btn-order-drink" class="btn btn-small" disabled>Order a drink</button>
+        </div>
+      </div>
+
+      <div class="zone rooms-row">
+        <div class="zone-label rooms-row-label">Private Rooms <small>(MCP servers)</small></div>
+        <div class="private-room" data-room="github">
+          <div class="room-title">🐙 GitHub</div>
+          <div class="npc landlord">🧑‍💼</div>
+          <div class="room-actions">
+            <button class="btn btn-small tool-btn" data-tool="list_repos">List repos</button>
+            <button class="btn btn-small tool-btn" data-tool="read_file">Read file</button>
+            <button class="btn btn-small tool-btn danger" data-tool="delete_files">Delete files</button>
+          </div>
+        </div>
+        <div class="private-room" data-room="atlassian">
+          <div class="room-title">🗂️ Atlassian</div>
+          <div class="npc landlord">🧑‍💼</div>
+          <div class="room-actions">
+            <button class="btn btn-small tool-btn" data-tool="read_issue">Read issue</button>
+            <button class="btn btn-small tool-btn" data-tool="comment">Comment</button>
+            <button class="btn btn-small tool-btn danger" data-tool="delete_files">Delete project</button>
+          </div>
+        </div>
+        <div class="private-room" data-room="snowflake">
+          <div class="room-title">❄️ Snowflake</div>
+          <div class="npc landlord">🧑‍💼</div>
+          <div class="room-actions">
+            <button class="btn btn-small tool-btn" data-tool="query">Run query</button>
+            <button class="btn btn-small tool-btn" data-tool="export">Export rows</button>
+            <button class="btn btn-small tool-btn danger" data-tool="delete_files">Drop table</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="zone vault">
+        <div class="zone-label">🛎️ Concierge Desk <small>(Token Vault — run by Kong Identity)</small></div>
+        <div class="npc concierge" title="Concierge">🧑‍💼</div>
+        <div class="vault-drawer" id="vault-drawer">
+          <div class="drawer-row" data-landlord="github"><span>🐙 GitHub</span><span class="conn-state" id="conn-github">not connected</span></div>
+          <div class="drawer-row" data-landlord="atlassian"><span>🗂️ Atlassian</span><span class="conn-state" id="conn-atlassian">not connected</span></div>
+          <div class="drawer-row" data-landlord="snowflake"><span>❄️ Snowflake</span><span class="conn-state" id="conn-snowflake">not connected</span></div>
+        </div>
+        <div class="vault-btns">
+          <button id="btn-disconnect" class="btn btn-small">Self-service disconnect…</button>
+          <button id="btn-admin-revoke" class="btn btn-small btn-warn">Manager: revoke a card…</button>
+          <button id="btn-audit" class="btn btn-small">View audit logbook</button>
+        </div>
+      </div>
+
+      <div class="zone legacy">
+        <div class="zone-label">🧾 Legacy Consumers registers <small>(JTBD-22/23)</small></div>
+        <div class="legacy-grid" id="legacy-grid"></div>
+        <button id="btn-migrate" class="btn btn-small">Rewire one register →</button>
+      </div>
+
+      <div class="avatar" id="avatar" title="You">🧑</div>
+    </div>
+  </main>
+</div>
+
+<footer class="statusbar" id="statusbar">Pick a scenario, or build your own visit, then press "Walk them in".</footer>
+
+<!-- ============ Modal ============ -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
